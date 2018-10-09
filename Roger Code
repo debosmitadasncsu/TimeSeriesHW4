@@ -1,0 +1,111 @@
+# Time Series 2 - Homework Team 2 Fall 2 
+# Well G-3549 Analysis 
+
+# Intall required packages
+install.packages(c('tidyverse','readxl','forecast','haven','fma','expsmooth','lmtest','zoo','seasonal','ggplot2'))
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(forecast)
+library(haven)
+library(fma)
+library(expsmooth)
+library(lmtest)
+library(zoo)
+library(seasonal)
+library(ggplot2)
+library(lubridate)
+install.packages('tseries')
+library(tseries)
+
+#read in well csv
+well_orig <- read_excel("/Users/rogerdugas/Desktop/MSA NC State/1.1 Fall 2/Time Series 2/Homework/G-3549.xlsx", sheet = 3)
+
+#-----------------------------------------------DATA CLEANING/TRANSFORMATION---------------------------------------------
+
+# Aggregate time series data to hourly data
+well_hourly <- well_orig %>% 
+  group_by(date(date), hour(time), tz_cd) %>% 
+  summarise(well_ft = mean(Well_ft, na.rm = TRUE), 
+            corrected = mean(Corrected, na.rm=TRUE)) %>%
+  rename(hours = `hour(time)`, date=`date(date)`)
+
+# Combine date and hour columns
+well_hourly$date <- as_datetime(well_hourly$date)
+hour(well_hourly$date) <- well_hourly$hours
+
+# Adjust time for daylight savings
+# Create new column, adjust time, convert back to datetime
+well_hourly$datetime_correct <- well_hourly$date
+well_hourly$datetime_correct <- ifelse(well_hourly$tz_cd == "EDT", well_hourly$datetime_correct - hours(1), well_hourly$datetime_correct)
+well_hourly$datetime_correct <- as_datetime(well_hourly$datetime_correct)
+
+# Make time sequence to join in and create placeholders for missing values where there are gaps in between hours
+ts <- data.frame(timeSequence(from = "2007-10-01", to = "2018-06-13", by = "hours"))
+colnames(ts) <- "time_series" 
+
+# Join well_hourly to ts dataframe
+join <- well_hourly %>% 
+  right_join(ts, by = c("datetime_correct" = "time_series")) 
+
+# Remove extra 2 hours at end of join
+join <- join[-c(93792:93793),]
+
+# Create dataframe with only corrected datetime and corrected well height
+well <- join[,c(6,5)]
+summary(well) # We have 846 missing values of corrected in our well dataset. 
+
+# Impute missing values using na.approx
+# Create zoo object, impute, convert back to dataframe, then rename columns for better interpretation
+well.z <- zoo(x = well$corrected, well$datetime_correct) #Convert to zoo object to impute
+well.z <- na.approx(well.z) #Impute the missing values
+well <- fortify.zoo(well.z)
+names(well)[1] <- "datetime"
+names(well)[2] <- "height"
+
+# We are only going to look back at 4 years worth of hourly well height data for our analysis, therefore will reduce the 
+# amount of data in our time series
+well_subset <- subset(well, datetime >= as.POSIXct('2014-06-11 20:00:00'))
+
+df_well <- data.frame(well_subset$datetime, well_subset$height)
+names(dfnew3) <- c("Carat", "Cut", "Color")
+
+
+# Create our Training and Testing datasets 
+train <- slice(df_well, 1:34918)
+test <- slice(df_well, 34919:35087) # Will use for testing selected model 
+
+plot(well.ts, xlab = 'Date', ylab= "Well Depth (ft)", main="Times Series for Well F-319")
+
+autoplot(well.ts) +
+  ggtitle("Well G-3549") +
+  ylab("Well Depth (ft)") +
+  xlab("Year")
+
+
+# Create a Time Series Object
+# Use frequency of 365.25* 24  = 8766 because we have annual season with hourly data
+well.ts <- ts(well$height, start = c(2014.5), frequency = 8766)
+str(well.ts)
+
+
+#check decomposition
+decomp_stl <- stl(well.ts, s.window = 24)
+plot(decomp_stl)
+
+nsdiffs(well.ts,test="ch")
+
+#lag.plot(well.ts, lag = 2, main = "Scatterplots of Y with First 2 Lags", diag = FALSE, layout = c(1, 2))
+#write.csv(well, "C:\\Users\\amyha\\Dropbox\\NCSU-MSA\\MSA - Fall\\Time Series II\\Well_Data\\Well Data\\adj_well_data.csv")
+
+#--------------------------------------Seasonal ARIMA in SAS----------------------------------------------
+# Write the data.frame of our well time series data to a csv to continue analysis in SAS
+write.csv(well,'g3549well.csv')
+
+#----------------------------------ANALYSIS IN SAS: SEE SAS CODE---------------------------------------------------
+##########
+##########
+##########
+#----------------------------------------------------------------------------------------------------------
+
+
