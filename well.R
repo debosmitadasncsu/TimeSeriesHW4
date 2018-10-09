@@ -56,6 +56,8 @@ names(well)[2] <- "height"
 #make ts 
 #frequency = 365.25* 24 because we have annual season with hourly data
 well.ts <- ts(well$height, start = c(2007.75), frequency = 8766)
+
+well.ts <- msts(well$height, start = c(2007.75), seasonal.periods=c(8766,24*7))
 plot(well.ts)
 
 
@@ -66,23 +68,47 @@ plot(decomp_well)
 
 #we want to use 4 years of data.
 #create new df with data starting at June 1, 2014
-well_short <- well[58441:92945,]
-well_short.ts <- ts(well_short$height,start = c(2014.5), frequency = 8766)
-plot(stl(well_short.ts, s.window=25))
+well_short <- well[58441:93504,]
+well_short.ts <- msts(well_short$height,start = c(2014.5), seasonal.periods=c(8766,24*14))
+plot(mstl(well_short.ts, s.window=25))
+
+
+well_2year <- well[72337:93791,]
+well_2year.ts <- msts(well_2year$height,start = c(2016), seasonal.periods=c(8766,24))
+plot(mstl(well_2year.ts, s.window=25))
 
 #split into training and validation data sets
 
 train <- subset(well_short.ts, end = length(well_short.ts) - 169)
 test <- subset(well_short.ts, start = length(well_short.ts) - 168)
 
+well.ts <- msts(well_short$height, start = c(2014.5), seasonal.periods=c(8766,24*14))
+plot(mstl(well.ts, s.window = 25))
 
 #fit seasonality with fourier series
-fit.fourier <-Arima(train,order=c(0,0,0),xreg=fourier(train,K=100))
+#using k=20, because simmons said it could be a large number
+#anything over 20 is very slow
+#still appears to be trend, add index variable to fit trend
+x<- cbind(fourier(train,K=10), seq(1:length(train)))
+
+fit.fourier <-Arima(train,order=c(0,0,0),xreg=x)
+
+#check stationarity of residuals
+#appears to be stationary (p-value = 0.01)
+adf.test(fit.fourier$residuals, k=10)
+
+#plot ACF and PACF
+tsdisplay(fit.fourier$residuals)
+Box.test(fit.fourier$residuals, lag=10, type="Ljung-Box")
+
+fit.fourier2 <-Arima(train,order=c(12,0,12),
+                     xreg=x)
+Box.test(fit.fourier2$residuals, lag=10, type="Ljung-Box")
 
 #Box.test(well.seasonal.fit$residuals, lag=10, type="Ljung-Box")
 
 #fit seasonality with differencing
-fit.diff <- diff(well.ts, lag=8766, differences=1)
+fit.diff <- Arima(train,order=c(0,0,0), seasonal=c(0,8766,0))
 
 
 #Box.test(well.seasonal.fit.diff, lag=10, type="Ljung-Box")
