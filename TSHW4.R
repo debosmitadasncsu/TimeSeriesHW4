@@ -7,7 +7,6 @@ library(dplyr)
 library(xts)
 library(ggplot2)
 
-
 df <- read_xlsx("C:\\Users\\Debosmita\\Documents\\TimeSeriesHW4\\G-3549.xlsx", 3)
 
 
@@ -55,31 +54,32 @@ cleaned_well$appx.Corrected <- na.approx(cleaned_well$avg.Corrected)
 
 remove(df, df1, df2, df3)
 
-# Build a holdout dataset
-Ending <- nrow(cleaned_well) - 168
-Well_Training= cleaned_well[1:Ending,]
+# Build a holdout dataset - training has data of 4 years except one month - validation has only 1 month of data
+Ending <- nrow(cleaned_well) - 720
+Well_Training= cleaned_well[58008:Ending,]
 Well_Validation= cleaned_well[(Ending+1):nrow(cleaned_well),]
 nrow(cleaned_well)
 nrow(Well_Training)
 nrow(Well_Validation)
 
-Well_Training <- ts(Well_Training$avg.Corrected, start = c(2007,10), frequency = 8766)
-Well_Validation <- ts(Well_Validation$avg.Corrected, start = 2007.75, frequency = 8766)
+Well_Training <- ts(Well_Training$appx.Corrected, start = c(2014,5), frequency = 8766)
+Well_Validation <- ts(Well_Validation$appx.Corrected, start = c(2018,5), frequency = 24)
 
-#decomposition of time series - need to check this - the seasonality is not looking good to me
-#either it has multiple seasonal patterns or my window is wrong
-decomp_stl <- stl(Well_Training,s.window=24,na.action = na.approx)
+#decomposition of time
+decomp_stl <- stl(Well_Training,s.window=24)
 plot(decomp_stl)
 
 
-#fitting sarima
-fit <- auto.arima(Well_Training, seasonal=TRUE,
-                  xreg=fourier(Well_Training, K=c(2,24)))
-summary(fit)
-fit %>%
-  forecast(xreg=fourier(calls, K=c(10,10), h=2*169)) %>%
-  autoplot(include=5*169) +
-  ylab("Call volume") + xlab("Weeks")
-
-
-
+#### Sine and Cosine in ARIMA
+index.ts=seq(1,length(Well_Training))
+x1.sin=sin(2*pi*index.ts*1/8766)
+x1.cos=cos(2*pi*index.ts*1/8766)
+x2.sin=sin(2*pi*index.ts*2/8766)
+x2.cos=cos(2*pi*index.ts*2/8766)
+x3.sin=sin(2*pi*index.ts*3/8766)
+x3.cos=cos(2*pi*index.ts*3/8766)
+x4.sin=sin(2*pi*index.ts*4/8766)
+x4.cos=cos(2*pi*index.ts*4/8766)
+x.reg=cbind(x1.sin,x1.cos)
+arima.1<-Arima(Well_Training,order=c(0,0,0),xreg=x.reg)
+summary(arima.1)
