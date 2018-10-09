@@ -83,3 +83,22 @@ x4.cos=cos(2*pi*index.ts*4/8766)
 x.reg=cbind(x1.sin,x1.cos)
 arima.1<-Arima(Well_Training,order=c(0,0,0),xreg=x.reg)
 summary(arima.1)
+
+# 
+# 
+# Results
+# # 
+# Series: Well_Training 
+# Regression with ARIMA(0,0,0) errors 
+# 
+# Coefficients:
+#   intercept  x1.sin   x1.cos
+# 0.2468  0.2495  -0.1822
+# s.e.     0.0013  0.0018   0.0018
+# 
+# sigma^2 estimated as 0.05799:  log likelihood=169.98
+# AIC=-331.96   AICc=-331.96   BIC=-298.1
+# 
+# Training set error measures:
+#   ME      RMSE      MAE       MPE     MAPE     MASE      ACF1
+# Training set -1.489569e-14 0.2408006 0.176406 -14.14593 230.0092 0.692116 0.9987756
