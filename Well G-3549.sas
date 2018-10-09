@@ -84,3 +84,4 @@ proc arima data=wells_seasonality;
 	identify var=Residual;
 run;
 quit;
+
