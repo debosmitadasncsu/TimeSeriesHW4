@@ -55,33 +55,36 @@ names(well)[2] <- "height"
 
 #make ts 
 #frequency = 365.25* 24 because we have annual season with hourly data
-well.ts <- ts(well$height, start = 2007, frequency = 8765.25)
-
-#adj_well.ts <- ts(well$adj_height, start = 2007, frequency = 8765.25)
+well.ts <- ts(well$height, start = c(2007.75), frequency = 8766)
 plot(well.ts)
 
+
 #check decomposition
-decomp_well <- stl(well.ts, s.window = 7)
+decomp_well <- stl(well.ts, s.window = 25)
 plot(decomp_well)
 
-decomp_adj <- stl(adj_well.ts, s.window = 7)
-plot(decomp_adj)
 
+#we want to use 4 years of data.
+#create new df with data starting at June 1, 2014
+well_short <- well[58441:92945,]
+well_short.ts <- ts(well_short$height,start = c(2014.5), frequency = 8766)
+plot(stl(well_short.ts, s.window=25))
 
 #split into training and validation data sets
 
-train <- subset(well.ts, end = length(well.ts) - 169)
-test <- subset(well.ts, start = length(well.ts) -168)
+train <- subset(well_short.ts, end = length(well_short.ts) - 169)
+test <- subset(well_short.ts, start = length(well_short.ts) - 168)
 
 
 #fit seasonality with fourier series
-well.seasonal.fit <-Arima(train,order=c(0,0,0),xreg=fourier(train,K=5))
+fit.fourier <-Arima(train,order=c(0,0,0),xreg=fourier(train,K=100))
 
 #Box.test(well.seasonal.fit$residuals, lag=10, type="Ljung-Box")
 
 #fit seasonality with differencing
-well.seasonal.fit.diff <- diff(well.ts, lag=8766, differences=1)
-Box.test(well.seasonal.fit.diff, lag=10, type="Ljung-Box")
+fit.diff <- diff(well.ts, lag=8766, differences=1)
 
+
+#Box.test(well.seasonal.fit.diff, lag=10, type="Ljung-Box")
 #lag.plot(well.ts, lag = 2, main = "Scatterplots of Y with First 2 Lags", diag = FALSE, layout = c(1, 2))
-#write.csv(well, "C:\\Users\\amyha\\Dropbox\\NCSU-MSA\\MSA - Fall\\Time Series II\\Well_Data\\Well Data\\adj_well_data.csv")
+#write.csv(well_end, "C:\\Users\\amyha\\Dropbox\\NCSU-MSA\\MSA - Fall\\Time Series II\\Well_Data\\Well Data\\adj_well_data.csv")
