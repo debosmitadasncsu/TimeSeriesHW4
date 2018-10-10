@@ -57,18 +57,38 @@ proc sql;
 	create table wellsshort as
 	select *
 	from wells
-	where int(year(datepart(datetime))) >= 2014 and datetime < DATETIME('05JUN18:22:00:00');
+	where int(year(datepart(datetime))) >= 2014;* and datetime < DATETIME('05JUN18:22:00:00');
 quit;
 
 /* Automatic Model Identification */
 proc arima data=wellsshort plot=all;
 	*identify var=height(6) nlag=40 stationarity=(adf=5);
 	*identify var=height(6) nlag=30 minic scan esacf P=(0:60) Q=(0:60);
-	identify var=height(4383) nlag=20;
-	estimate p=7 q=13 method=ML;
-	forecast lead=168 back=168 out=estimates;
+	identify var=height(1,4383) nlag=18;
+	estimate p=7 q=1 method=ML;
+	forecast lead=168 back=168 out=wellmodel;
 run;
 quit;
+
+
+data wellmodel;
+	set wellmodel;
+	pe=abs(residual/height);
+run;
+
+proc sql;
+	select mean(pe)
+	from wellmodel;
+quit;
+
+* 7, 13 = 002779
+* 7,0
+0.002704 
+
+30,0, seasonal = 0.002386
+
+30,0
+0.000334
 
 /*using fourier functions to model seasonality*/
 /*scan is helping to identify the appropriate p/q terms*/
