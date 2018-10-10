@@ -1,4 +1,5 @@
 
+
 /*pulling in data*/
 /*this is the already aggregated/cleaned data from R*/
 proc import datafile= 'C:\Users\Evan\Desktop\Evan MSA\Fall 2\TIme Series II\adj_well_data.csv'
@@ -78,6 +79,48 @@ proc arima data=wellsshort;
 run;
 quit;
 
+
+/*no seasonality, just ARMA terms*/
+proc arima data=wellsshort plot(unpack);
+	identify var=height(1) minic
+	p=(0:25) q=(0:25);
+	*estimate method=ml;
+	*forecast back=168;
+run;
+quit;
+
+proc arima data=wellsshort;
+	identify var=height(1,1) nlag=1000;
+	estimate p=5 q=0;
+	forecast back=168;
+run;
+quit;
+
+proc arima data=wellsshort plot=all;
+    *identify var=height(6) nlag=40 stationarity=(adf=5);
+    *identify var=height(6) nlag=30 minic scan esacf P=(0:60) Q=(0:60);
+    identify var=height(4383) nlag=25;
+    estimate p=7 q=13 method=ML;
+    forecast lead=168 back=168 out=wellmodel;
+run;
+quit;
+
+proc arima data=wellsshort plot=all;
+  identify var=logHeight(1) nlag=30;
+  estimate p=44 q=0 method=ML;
+  forecast lead=168 back=168 out=wellmodel;
+run;
+quit;
+
+data wellmodel;
+	set wellmodel;
+	pe=residual/height;
+run;
+
+proc sql;
+	select mean(pe)
+	from wellmodel;
+quit;
 
 /*can run arima on residuals*/
 proc arima data=wells_seasonality;
