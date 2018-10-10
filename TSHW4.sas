@@ -60,7 +60,7 @@ proc sql;
 	where int(year(datepart(datetime))) >= 2014;* and datetime < DATETIME('05JUN18:22:00:00');
 quit;
 
-/* Automatic Model Identification */
+/*************************************FINAL ONE ******************************** */
 proc arima data=wellsshort plot=all;
 	*identify var=height(6) nlag=40 stationarity=(adf=5);
 	*identify var=height(6) nlag=30 minic scan esacf P=(0:60) Q=(0:60);
