@@ -113,8 +113,9 @@ run;
 quit;
 
 data wellmodel;
-	set wellmodel;
-	pe=residual/height;
+	set wellmodel nobs=nobs;
+	pe=abs(residual/height);
+	if _n_>38807 then output;
 run;
 
 proc sql;
